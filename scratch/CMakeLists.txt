@@ -48,13 +48,25 @@ endif()
 
 add_executable(hi_triangle hi_triangle.cpp)
 add_executable(instance_creation instance_creation.cpp)
+add_executable(validation_layers validation_layers.cpp)
 
 if(ENABLE_CPP20_MODULE)
     target_link_libraries(hi_triangle PRIVATE Vulkan::cppm ${GLFW_TARGET})
-    target_compile_definitions(hi_triangle PRIVATE USE_CPP20_MODULES=1)
+    target_compile_definitions(hi_triangle PRIVATE USE_CPP20_MODULES=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+
     target_link_libraries(instance_creation PRIVATE Vulkan::cppm ${GLFW_TARGET})
-    target_compile_definitions(instance_creation PRIVATE USE_CPP20_MODULES=1)
+    target_compile_definitions(instance_creation PRIVATE USE_CPP20_MODULES=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+
+    target_link_libraries(validation_layers PRIVATE Vulkan::cppm ${GLFW_TARGET})
+    target_compile_definitions(validation_layers PRIVATE USE_CPP20_MODULES=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+
 else()
     target_link_libraries(hi_triangle PRIVATE Vulkan::Vulkan ${GLFW_TARGET})
+    target_compile_definitions(hi_triangle PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+
     target_link_libraries(instance_creation PRIVATE Vulkan::Vulkan ${GLFW_TARGET})
+    target_compile_definitions(instance_creation PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+
+    target_link_libraries(validation_layers PRIVATE Vulkan::Vulkan ${GLFW_TARGET})
+    target_compile_definitions(validation_layers PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
 endif()
