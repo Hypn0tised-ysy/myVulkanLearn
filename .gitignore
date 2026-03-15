@@ -1,5 +1,7 @@
 /build
 build/
+build-release/
+build-debug/
 .log
 /attachments_with_AI_annotation
 attachments_with_AI_annotation/

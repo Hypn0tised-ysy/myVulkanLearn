@@ -4,24 +4,30 @@ set -e
 BUILD_DIR="build"
 
 # 如果 build 目录存在，则删除
+if [ -d "$BUILD_DIR-debug" ]; then
+echo "Removing existing build-debug directory..."
+rm -rf "$BUILD_DIR-debug"
+fi
 
-if [ -d "$BUILD_DIR" ]; then
-echo "Removing existing build directory..."
-rm -rf "$BUILD_DIR"
+if [ -d "$BUILD_DIR-release" ]; then
+echo "Removing existing build-release directory..."
+rm -rf "$BUILD_DIR-release"
 fi
 
 # 重新配置
-
-echo "Configuring project..."
-cmake -B "$BUILD_DIR" -S . -G Ninja
-
 # 编译
 
-echo "Building project..."
-cmake --build "$BUILD_DIR"
+echo "Configuring project-debug..."
+cmake -B "$BUILD_DIR-debug" -DCMAKE_BUILD_TYPE=Debug -S . -G Ninja
+echo "Building project-debug..."
+cmake --build "$BUILD_DIR-debug" --config Debug
+echo "Build-debug finished."
 
-# 进入 build 目录
 
-cd "$BUILD_DIR"
+echo "Configuring project-release..."
+cmake -B "$BUILD_DIR-release" -DCMAKE_BUILD_TYPE=Release -S . -G Ninja
+echo "Building project-release..."
+cmake --build "$BUILD_DIR-release" --config Release
+echo "Build-release finished."
 
-echo "Build finished. Now in $(pwd)"
+
