@@ -1,3 +1,0 @@
-/home/hypnotised/Desktop/projects/vulkan_learn/myVulkanLearn/scratch/build/CMakeFiles/hi_triangle.dir
-/home/hypnotised/Desktop/projects/vulkan_learn/myVulkanLearn/scratch/build/CMakeFiles/edit_cache.dir
-/home/hypnotised/Desktop/projects/vulkan_learn/myVulkanLearn/scratch/build/CMakeFiles/rebuild_cache.dir
