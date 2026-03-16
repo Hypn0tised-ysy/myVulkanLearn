@@ -6,8 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Optional: build with Vulkan-Hpp C++20 module (requires VulkanHpp find module in ./CMake)
-# 编译器版本太老力，不支持C++20模块，以后需要再看吧
+# Optional: build with Vulkan-Hpp C++20 module
 option(ENABLE_CPP20_MODULE "Enable C++20 module support for Vulkan-Hpp" OFF)
 
 find_package(Vulkan REQUIRED)
@@ -20,6 +19,19 @@ elseif(TARGET glfw3::glfw)
 else()
     message(FATAL_ERROR "GLFW target not found. Expected target name: glfw or glfw3::glfw")
 endif()
+
+# 公共配置目标
+add_library(project_options INTERFACE)
+
+target_compile_definitions(project_options
+    INTERFACE
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+)
+
+target_link_libraries(project_options
+    INTERFACE
+        ${GLFW_TARGET}
+)
 
 if(ENABLE_CPP20_MODULE)
     list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
@@ -35,8 +47,15 @@ if(ENABLE_CPP20_MODULE)
             "${Vulkan_INCLUDE_DIR}"
             "${VulkanHpp_INCLUDE_DIRS}"
     )
-    target_link_libraries(VulkanCppModule PUBLIC Vulkan::Vulkan)
-    set_target_properties(VulkanCppModule PROPERTIES CXX_STANDARD 20)
+
+    target_link_libraries(VulkanCppModule
+        PUBLIC
+            Vulkan::Vulkan
+    )
+
+    set_target_properties(VulkanCppModule PROPERTIES
+        CXX_STANDARD 20
+    )
 
     target_sources(VulkanCppModule
         PUBLIC
@@ -44,29 +63,31 @@ if(ENABLE_CPP20_MODULE)
             BASE_DIRS "${VulkanHpp_CPPM_DIR}"
             FILES "${VulkanHpp_CPPM_DIR}/vulkan/vulkan.cppm"
     )
-endif()
 
-add_executable(hi_triangle hi_triangle.cpp)
-add_executable(instance_creation instance_creation.cpp)
-add_executable(validation_layers validation_layers.cpp)
+    target_link_libraries(project_options
+        INTERFACE
+            Vulkan::cppm
+    )
 
-if(ENABLE_CPP20_MODULE)
-    target_link_libraries(hi_triangle PRIVATE Vulkan::cppm ${GLFW_TARGET})
-    target_compile_definitions(hi_triangle PRIVATE USE_CPP20_MODULES=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
-
-    target_link_libraries(instance_creation PRIVATE Vulkan::cppm ${GLFW_TARGET})
-    target_compile_definitions(instance_creation PRIVATE USE_CPP20_MODULES=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
-
-    target_link_libraries(validation_layers PRIVATE Vulkan::cppm ${GLFW_TARGET})
-    target_compile_definitions(validation_layers PRIVATE USE_CPP20_MODULES=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
-
+    target_compile_definitions(project_options
+        INTERFACE
+            USE_CPP20_MODULES=1
+    )
 else()
-    target_link_libraries(hi_triangle PRIVATE Vulkan::Vulkan ${GLFW_TARGET})
-    target_compile_definitions(hi_triangle PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
-
-    target_link_libraries(instance_creation PRIVATE Vulkan::Vulkan ${GLFW_TARGET})
-    target_compile_definitions(instance_creation PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
-
-    target_link_libraries(validation_layers PRIVATE Vulkan::Vulkan ${GLFW_TARGET})
-    target_compile_definitions(validation_layers PRIVATE VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+    target_link_libraries(project_options
+        INTERFACE
+            Vulkan::Vulkan
+    )
 endif()
+
+set(APP_SOURCES
+    hi_triangle
+    instance_creation
+    validation_layers
+    select_physical_device
+)
+
+foreach(app IN LISTS APP_SOURCES)
+    add_executable(${app} ${app}.cpp)
+    target_link_libraries(${app} PRIVATE project_options)
+endforeach()
