@@ -85,6 +85,7 @@ set(APP_SOURCES
     instance_creation
     validation_layers
     select_physical_device
+    logical_device
 )
 
 foreach(app IN LISTS APP_SOURCES)
