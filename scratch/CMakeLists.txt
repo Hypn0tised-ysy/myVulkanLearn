@@ -87,6 +87,7 @@ set(APP_SOURCES
     select_physical_device
     logical_device
     window_surface_integration
+    swap_chain
 )
 
 foreach(app IN LISTS APP_SOURCES)
