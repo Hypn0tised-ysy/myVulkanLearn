@@ -86,6 +86,7 @@ set(APP_SOURCES
     validation_layers
     select_physical_device
     logical_device
+    window_surface_integration
 )
 
 foreach(app IN LISTS APP_SOURCES)
