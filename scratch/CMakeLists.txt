@@ -113,6 +113,7 @@ set(APP_SOURCES
     swap_chain
     image_view
     shader_modules
+    fixed_function
 )
 
 # 编译 Slang 着色器
