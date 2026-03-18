@@ -88,6 +88,7 @@ set(APP_SOURCES
     logical_device
     window_surface_integration
     swap_chain
+    image_view
 )
 
 foreach(app IN LISTS APP_SOURCES)
