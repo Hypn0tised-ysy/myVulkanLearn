@@ -114,6 +114,7 @@ set(APP_SOURCES
     image_view
     shader_modules
     fixed_function
+    graphics_pipeline_complete
 )
 
 # 编译 Slang 着色器
