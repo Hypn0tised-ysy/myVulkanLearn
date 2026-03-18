@@ -12,6 +12,9 @@ option(ENABLE_CPP20_MODULE "Enable C++20 module support for Vulkan-Hpp" OFF)
 find_package(Vulkan REQUIRED)
 find_package(glfw3 REQUIRED)
 
+# 查找 Slang 编译器
+find_program(SLANGC_EXECUTABLE slangc REQUIRED)
+
 if(TARGET glfw)
     set(GLFW_TARGET glfw)
 elseif(TARGET glfw3::glfw)
@@ -80,6 +83,26 @@ else()
     )
 endif()
 
+# 编译着色器 compile shaders
+function (add_slang_shader_target TARGET)
+  cmake_parse_arguments ("SHADER" "" "" "SOURCES" ${ARGN})
+  set (SHADERS_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
+  set (ENTRY_POINTS -entry vertMain -entry fragMain)
+  add_custom_command (
+          OUTPUT ${SHADERS_DIR}
+          COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
+  )
+  add_custom_command (
+          OUTPUT  ${SHADERS_DIR}/slang.spv
+          COMMAND ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o slang.spv
+          WORKING_DIRECTORY ${SHADERS_DIR}
+          DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES}
+          COMMENT "Compiling Slang Shaders"
+          VERBATIM
+  )
+  add_custom_target (${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
+endfunction()
+
 set(APP_SOURCES
     hi_triangle
     instance_creation
@@ -89,9 +112,17 @@ set(APP_SOURCES
     window_surface_integration
     swap_chain
     image_view
+    shader_modules
+)
+
+# 编译 Slang 着色器
+add_slang_shader_target(compile_shaders
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/shaders/09_shader_base.slang
 )
 
 foreach(app IN LISTS APP_SOURCES)
     add_executable(${app} ${app}.cpp)
     target_link_libraries(${app} PRIVATE project_options)
+    # 添加着色器编译的依赖
+    add_dependencies(${app} compile_shaders)
 endforeach()

@@ -7,3 +7,4 @@ build-debug/
 attachments_with_AI_annotation/
 /AI_ANNOTATION_FILES
 AI_ANNOTATION_FILES/
+.vscode/
