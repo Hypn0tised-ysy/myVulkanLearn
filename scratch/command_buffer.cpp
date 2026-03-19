@@ -8,8 +8,6 @@
 #include <limits>
 #include <stdexcept>
 #include <vector>
-#include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 #if defined(__INTELLISENSE__) || !defined(USE_CPP20_MODULES)
 #include <vulkan/vulkan_raii.hpp>
@@ -53,6 +51,7 @@ private:
   vk::raii::PhysicalDevice physicalDevice = nullptr;
   vk::raii::Device device = nullptr;
 
+  uint32_t queueIndex = ~0;
   vk::raii::Queue queue = nullptr;
 
   vk::raii::SwapchainKHR swapChain = nullptr;
@@ -65,6 +64,9 @@ private:
   vk::raii::PipelineLayout pipelineLayout = nullptr;
 
   vk::raii::Pipeline graphicsPipeline = nullptr;
+
+  vk::raii::CommandPool commandPool = nullptr;
+  vk::raii::CommandBuffer commandBuffer = nullptr;
 
   std::vector<const char *> requiredDeviceExtension = {
       vk::KHRSwapchainExtensionName};
@@ -91,6 +93,9 @@ private:
     createImageViews();
 
     createGraphicsPipeline();
+
+    createCommandPool();
+    createCommandBuffer();
   }
 
   void mainLoop() {
@@ -215,7 +220,6 @@ private:
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties =
         physicalDevice.getQueueFamilyProperties();
 
-    uint32_t queueIndex = ~0;
     for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size();
          qfpIndex++) {
       bool supportsGraphics = !!(queueFamilyProperties[qfpIndex].queueFlags &
@@ -375,26 +379,40 @@ private:
 
     vk::StructureChain<vk::GraphicsPipelineCreateInfo,
                        vk::PipelineRenderingCreateInfo>
-        pipelineCreateInfoChain =
-    { {
-          .stageCount = 2,
-          .pStages = shaderStages,
-          .pVertexInputState = &vertexInputInfo,
-          .pInputAssemblyState = &inputAssembly,
-          .pViewportState = &viewportState,
-          .pRasterizationState = &rasterizer,
-          .pMultisampleState = &multisampling,
-          .pColorBlendState = &colorBlending,
-          .pDynamicState = &dynamicState,
-          .layout = pipelineLayout,
-          .renderPass = nullptr, // 使用动态渲染，无传统 RenderPass
-      },
-      {.colorAttachmentCount = 1,
-       .pColorAttachmentFormats = &swapChainSurfaceFormat.format} };
+        pipelineCreateInfoChain = {
+            {.stageCount = 2,
+             .pStages = shaderStages,
+             .pVertexInputState = &vertexInputInfo,
+             .pInputAssemblyState = &inputAssembly,
+             .pViewportState = &viewportState,
+             .pRasterizationState = &rasterizer,
+             .pMultisampleState = &multisampling,
+             .pColorBlendState = &colorBlending,
+             .pDynamicState = &dynamicState,
+             .layout = pipelineLayout,
+             .renderPass = nullptr},
+            {.colorAttachmentCount = 1,
+             .pColorAttachmentFormats = &swapChainSurfaceFormat.format}};
 
     graphicsPipeline = vk::raii::Pipeline(
         device, nullptr,
         pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
+  }
+
+  void createCommandPool() {
+    // 允许单独重置command buffer,而不是重置整个command pool
+    vk::CommandPoolCreateInfo poolInfo{
+        .flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+        .queueFamilyIndex = queueIndex};
+    commandPool = vk::raii::CommandPool(device, poolInfo);
+  }
+
+  void createCommandBuffer() {
+    vk::CommandBufferAllocateInfo allocInfo{
+        .commandPool = commandPool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1};
+    commandBuffer = std::move(vk::raii::CommandBuffers(device, allocInfo).front());
   }
 
   [[nodiscard]] vk::raii::ShaderModule
