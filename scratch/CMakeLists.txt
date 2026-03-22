@@ -105,6 +105,7 @@ endfunction()
 
 set(APP_SOURCES
 
+# triangle_src
     hi_triangle
     instance_creation
     validation_layers
@@ -118,6 +119,10 @@ set(APP_SOURCES
     graphics_pipeline_complete
     command_buffer
     hello_triangle
+# 
+    vulkan_learn
+
+
 )
 
 set(APP_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/triangle_src)
@@ -128,7 +133,16 @@ add_slang_shader_target(compile_shaders
 )
 
 foreach(app IN LISTS APP_SOURCES)
-    add_executable(${app} ${APP_SOURCE_DIR}/${app}.cpp)
+    set(APP_SOURCE_FILE "${APP_SOURCE_DIR}/${app}.cpp")
+    if(NOT EXISTS "${APP_SOURCE_FILE}")
+        set(APP_SOURCE_FILE "${CMAKE_CURRENT_LIST_DIR}/${app}.cpp")
+    endif()
+
+    if(NOT EXISTS "${APP_SOURCE_FILE}")
+        message(FATAL_ERROR "Source file not found for target '${app}'. Checked: ${APP_SOURCE_DIR}/${app}.cpp and ${CMAKE_CURRENT_LIST_DIR}/${app}.cpp")
+    endif()
+
+    add_executable(${app} ${APP_SOURCE_FILE})
     target_link_libraries(${app} PRIVATE project_options)
     # 添加着色器编译的依赖
     add_dependencies(${app} compile_shaders)
