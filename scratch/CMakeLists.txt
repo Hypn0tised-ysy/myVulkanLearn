@@ -104,6 +104,7 @@ function (add_slang_shader_target TARGET)
 endfunction()
 
 set(APP_SOURCES
+
     hi_triangle
     instance_creation
     validation_layers
@@ -119,13 +120,15 @@ set(APP_SOURCES
     hello_triangle
 )
 
+set(APP_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/triangle_src)
+
 # 编译 Slang 着色器
 add_slang_shader_target(compile_shaders
     SOURCES ${CMAKE_CURRENT_LIST_DIR}/shaders/09_shader_base.slang
 )
 
 foreach(app IN LISTS APP_SOURCES)
-    add_executable(${app} ${app}.cpp)
+    add_executable(${app} ${APP_SOURCE_DIR}/${app}.cpp)
     target_link_libraries(${app} PRIVATE project_options)
     # 添加着色器编译的依赖
     add_dependencies(${app} compile_shaders)

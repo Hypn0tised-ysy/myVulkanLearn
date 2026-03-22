@@ -2,7 +2,7 @@
 build/
 build-release/
 build-debug/
-.log
+*.log
 /attachments_with_AI_annotation
 attachments_with_AI_annotation/
 /AI_ANNOTATION_FILES
