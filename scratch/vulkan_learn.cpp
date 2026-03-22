@@ -1,3 +1,5 @@
+#define VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
+
 #include <algorithm>
 #include <assert.h>
 #include <cstdint>
@@ -76,6 +78,8 @@ private:
 
   int frameIndex = 0;
 
+  bool framebufferResized = false;
+
   std::vector<const char *> requiredDeviceExtension = {
       vk::KHRSwapchainExtensionName};
 
@@ -83,9 +87,12 @@ private:
     glfwInit();
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+
+    glfwSetWindowUserPointer(window, this);
+    glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
   }
 
   void initVulkan() {
@@ -120,6 +127,34 @@ private:
     glfwDestroyWindow(window);
 
     glfwTerminate();
+  }
+
+  static void framebufferResizeCallback(GLFWwindow *window, int /*width*/,
+                                        int /*height*/) {
+    auto *app = reinterpret_cast<HelloTriangleApplication *>(
+        glfwGetWindowUserPointer(window));
+    app->framebufferResized = true;
+  }
+
+  void cleanupSwapChain() {
+    swapChainImageViews.clear();
+    swapChain = nullptr;
+  }
+
+  void recreateSwapChain() {
+    int width = 0, height = 0;
+    glfwGetFramebufferSize(window, &width, &height);
+    while (width == 0 || height == 0) {
+      glfwWaitEvents();
+      glfwGetFramebufferSize(window, &width, &height);
+    }
+
+    device.waitIdle();
+
+    cleanupSwapChain();
+
+    createSwapChain();
+    createImageViews();
   }
 
   void createInstance() {
@@ -528,6 +563,15 @@ private:
     auto [acquireResult, imageIndex] = swapChain.acquireNextImage(
         UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
 
+    if (acquireResult == vk::Result::eErrorOutOfDateKHR) {
+      // 交换链过期，重建后返回
+      recreateSwapChain();
+      return;
+    } else if (acquireResult != vk::Result::eSuccess &&
+               acquireResult != vk::Result::eSuboptimalKHR) {
+      throw std::runtime_error("failed to acquire swap chain image!");
+    }
+
     recordCommandBuffer(imageIndex);
 
     vk::PipelineStageFlags waitDestinationStageMask =
@@ -550,15 +594,11 @@ private:
         .pImageIndices = &imageIndex};
 
     result = queue.presentKHR(presentInfoKHR);
-    switch (result) {
-    case vk::Result::eSuccess:
-      break;
-    case vk::Result::eSuboptimalKHR:
-      std::cerr << "swap chain is suboptimal, but presentation still succeeded"
-                << std::endl;
-      break;
-    default:
-      throw std::runtime_error("failed to present swap chain image!");
+
+    if (result == vk::Result::eErrorOutOfDateKHR ||
+        result == vk::Result::eSuboptimalKHR || framebufferResized) {
+      framebufferResized = false;
+      recreateSwapChain();
     }
 
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
