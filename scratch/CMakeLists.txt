@@ -129,7 +129,7 @@ set(APP_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/triangle_src)
 
 # 编译 Slang 着色器
 add_slang_shader_target(compile_shaders
-    SOURCES ${CMAKE_CURRENT_LIST_DIR}/shaders/09_shader_base.slang
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/shaders/19_shader_vertexbuffer.slang
 )
 
 foreach(app IN LISTS APP_SOURCES)
