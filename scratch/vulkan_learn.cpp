@@ -408,11 +408,11 @@ private:
     auto bindingDescription = Vertex::getBindingDescription();
     auto attributeDescriptions = Vertex::getAttributeDescriptions();
     vk::PipelineVertexInputStateCreateInfo vertexInputInfo{
-      .vertexBindingDescriptionCount = 1,
-      .pVertexBindingDescriptions = &bindingDescription,
-      .vertexAttributeDescriptionCount =
-        static_cast<uint32_t>(attributeDescriptions.size()),
-      .pVertexAttributeDescriptions = attributeDescriptions.data()};
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &bindingDescription,
+        .vertexAttributeDescriptionCount =
+            static_cast<uint32_t>(attributeDescriptions.size()),
+        .pVertexAttributeDescriptions = attributeDescriptions.data()};
 
     vk::PipelineInputAssemblyStateCreateInfo inputAssembly{
         .topology = vk::PrimitiveTopology::eTriangleList};
@@ -489,9 +489,31 @@ private:
   }
 
   void createVertexBuffer() {
+    vk::BufferCreateInfo stagingInfo{
+        .size = sizeof(vertices[0]) * vertices.size(),
+        .usage = vk::BufferUsageFlagBits::eTransferSrc,
+        .sharingMode = vk::SharingMode::eExclusive};
+    vk::raii::Buffer stagingBuffer(device, stagingInfo);
+    vk::MemoryRequirements memRequirementsStaging =
+        stagingBuffer.getMemoryRequirements();
+    vk::MemoryAllocateInfo memoryAllocateInfoStaging{
+        .allocationSize = memRequirementsStaging.size,
+        .memoryTypeIndex =
+            findMemoryType(memRequirementsStaging.memoryTypeBits,
+                           vk::MemoryPropertyFlagBits::eHostVisible |
+                               vk::MemoryPropertyFlagBits::eHostCoherent)};
+    vk::raii::DeviceMemory stagingBufferMemory(device,
+                                               memoryAllocateInfoStaging);
+    stagingBuffer.bindMemory(*stagingBufferMemory, 0);
+
+    void *mappedData = stagingBufferMemory.mapMemory(0, stagingInfo.size);
+    std::memcpy(mappedData, vertices.data(), static_cast<size_t>(stagingInfo.size));
+    stagingBufferMemory.unmapMemory();
+
     vk::BufferCreateInfo bufferInfo{
         .size = sizeof(vertices[0]) * vertices.size(),
-        .usage = vk::BufferUsageFlagBits::eVertexBuffer,
+        .usage = vk::BufferUsageFlagBits::eVertexBuffer |
+                 vk::BufferUsageFlagBits::eTransferDst,
         .sharingMode = vk::SharingMode::eExclusive};
     vertexBuffer = vk::raii::Buffer(device, bufferInfo);
 
@@ -501,15 +523,32 @@ private:
         .allocationSize = memRequirements.size,
         .memoryTypeIndex =
             findMemoryType(memRequirements.memoryTypeBits,
-                           vk::MemoryPropertyFlagBits::eHostVisible |
-                               vk::MemoryPropertyFlagBits::eHostCoherent)};
+                           vk::MemoryPropertyFlagBits::eDeviceLocal)};
     vertexBufferMemory = vk::raii::DeviceMemory(device, memoryAllocateInfo);
 
     vertexBuffer.bindMemory(*vertexBufferMemory, 0);
 
-    void *data = vertexBufferMemory.mapMemory(0, bufferInfo.size);
-    memcpy(data, vertices.data(), bufferInfo.size);
-    vertexBufferMemory.unmapMemory();
+    copyBuffer(stagingBuffer, vertexBuffer, stagingInfo.size);
+  }
+
+  void copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer,
+                  vk::DeviceSize size) {
+    // 录制一次性命令缓冲并提交，将 srcBuffer 内容复制到 dstBuffer。
+    vk::CommandBufferAllocateInfo allocInfo{
+        .commandPool = commandPool,
+        .level = vk::CommandBufferLevel::ePrimary,
+        .commandBufferCount = 1};
+    vk::raii::CommandBuffer commandCopyBuffer =
+        std::move(device.allocateCommandBuffers(allocInfo).front());
+    commandCopyBuffer.begin(vk::CommandBufferBeginInfo{
+        .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+    commandCopyBuffer.copyBuffer(*srcBuffer, *dstBuffer,
+                                 vk::BufferCopy(0, 0, size));
+    commandCopyBuffer.end();
+    queue.submit(vk::SubmitInfo{.commandBufferCount = 1,
+                                .pCommandBuffers = &*commandCopyBuffer},
+                 nullptr);
+    queue.waitIdle();
   }
 
   uint32_t findMemoryType(uint32_t typeFilter,
