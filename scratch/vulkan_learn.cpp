@@ -561,7 +561,7 @@ private:
     // 第一步：把 jpg 读到 CPU 内存。这里强制转成 RGBA（4 通道），
     // 因此 imageSize = width * height * 4。
     int texWidth, texHeight, texChannels;
-    stbi_uc *pixels = stbi_load("textures/texture.jpg", &texWidth, &texHeight,
+    stbi_uc *pixels = stbi_load("textures/texture2.png", &texWidth, &texHeight,
                                 &texChannels, STBI_rgb_alpha);
     vk::DeviceSize imageSize = texWidth * texHeight * 4;
 
