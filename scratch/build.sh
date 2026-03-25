@@ -2,6 +2,10 @@
 set -e
 
 BUILD_DIR="build"
+SHADER_SPV="shaders/slang.spv"
+
+echo "Cleaning shader artifact..."
+rm -f "$SHADER_SPV"
 
 # 重新配置
 # 编译

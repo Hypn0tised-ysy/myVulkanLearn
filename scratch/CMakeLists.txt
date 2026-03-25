@@ -6,11 +6,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/CMake")
+
 # Optional: build with Vulkan-Hpp C++20 module
 option(ENABLE_CPP20_MODULE "Enable C++20 module support for Vulkan-Hpp" OFF)
 
-find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
+find_package (glfw3 REQUIRED)
+find_package (glm REQUIRED)
+find_package (Vulkan 1.4.335 REQUIRED)      # Require Vulkan SDK version 1.4.335 or higher
+
+find_package(stb REQUIRED)
 
 # 查找 Slang 编译器
 find_program(SLANGC_EXECUTABLE slangc REQUIRED)
@@ -30,6 +35,26 @@ target_compile_definitions(project_options
     INTERFACE
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
 )
+
+# stb
+if(TARGET stb::stb)
+    target_link_libraries(project_options
+        INTERFACE
+            stb::stb
+    )
+elseif(DEFINED stb_INCLUDE_DIRS)
+    target_include_directories(project_options
+        INTERFACE
+            ${stb_INCLUDE_DIRS}
+    )
+elseif(DEFINED STB_INCLUDE_DIRS)
+    target_include_directories(project_options
+        INTERFACE
+            ${STB_INCLUDE_DIRS}
+    )
+else()
+    message(FATAL_ERROR "stb found but no include dirs or imported target were provided")
+endif()
 
 target_link_libraries(project_options
     INTERFACE
@@ -129,7 +154,7 @@ set(APP_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/triangle_src)
 
 # 编译 Slang 着色器
 add_slang_shader_target(compile_shaders
-    SOURCES ${CMAKE_CURRENT_LIST_DIR}/shaders/22_shader_ubo.slang
+    SOURCES ${CMAKE_CURRENT_LIST_DIR}/shaders/shader.slang
 )
 
 foreach(app IN LISTS APP_SOURCES)
