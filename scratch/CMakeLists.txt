@@ -14,6 +14,7 @@ option(ENABLE_CPP20_MODULE "Enable C++20 module support for Vulkan-Hpp" OFF)
 find_package (glfw3 REQUIRED)
 find_package (glm REQUIRED)
 find_package (Vulkan 1.4.335 REQUIRED)      # Require Vulkan SDK version 1.4.335 or higher
+find_package (tinyobjloader REQUIRED)
 
 find_package(stb REQUIRED)
 
@@ -30,11 +31,6 @@ endif()
 
 # 公共配置目标
 add_library(project_options INTERFACE)
-
-target_compile_definitions(project_options
-    INTERFACE
-        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
-)
 
 # stb
 if(TARGET stb::stb)
@@ -55,6 +51,54 @@ elseif(DEFINED STB_INCLUDE_DIRS)
 else()
     message(FATAL_ERROR "stb found but no include dirs or imported target were provided")
 endif()
+
+# tinyobjloader
+if(TARGET tinyobjloader::tinyobjloader)
+    target_link_libraries(project_options
+        INTERFACE
+            tinyobjloader::tinyobjloader
+    )
+elseif(TARGET tinyobjloader)
+    target_link_libraries(project_options
+        INTERFACE
+            tinyobjloader
+    )
+elseif(DEFINED tinyobjloader_INCLUDE_DIRS)
+    target_include_directories(project_options
+        INTERFACE
+            ${tinyobjloader_INCLUDE_DIRS}
+    )
+    if(DEFINED tinyobjloader_LIBRARIES)
+        target_link_libraries(project_options
+            INTERFACE
+                ${tinyobjloader_LIBRARIES}
+        )
+    endif()
+elseif(DEFINED TINYOBJLOADER_INCLUDE_DIRS)
+    target_include_directories(project_options
+        INTERFACE
+            ${TINYOBJLOADER_INCLUDE_DIRS}
+    )
+    if(DEFINED TINYOBJLOADER_LIBRARIES)
+        target_link_libraries(project_options
+            INTERFACE
+                ${TINYOBJLOADER_LIBRARIES}
+        )
+    endif()
+else()
+    message(FATAL_ERROR "tinyobjloader found but no imported target or include dirs were provided")
+endif()
+
+target_compile_definitions(project_options
+    INTERFACE
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+)
+
+target_compile_options(project_options
+    INTERFACE
+        $<$<CONFIG:Release>:-O3>
+)
+
 
 target_link_libraries(project_options
     INTERFACE
